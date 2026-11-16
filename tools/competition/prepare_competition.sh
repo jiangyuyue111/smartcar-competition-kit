@@ -55,6 +55,11 @@ if [[ ! -f "$cascade_path" ]]; then
 fi
 if [[ ! -f "$bag_path" ]]; then
   printf 'Competition bag is missing: %s\n' "$bag_path" >&2
+  printf 'The bag package cannot be generated without this file; the turtle and face packages do not depend on it.\n' >&2
+  printf 'Fix it in one of these ways:\n' >&2
+  printf '  1. Put the bag at: %s\n' "$repository_root/data/qcrros.bag" >&2
+  printf '  2. Pass the bag path as the fifth argument.\n' >&2
+  printf '  3. Set COMPETITION_BAG to the bag path.\n' >&2
   exit 1
 fi
 bag_path="$(realpath "$bag_path")"
