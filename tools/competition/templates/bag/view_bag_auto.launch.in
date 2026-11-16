@@ -1,0 +1,7 @@
+<launch>
+  <arg name="bag_file" default="@BAG_PATH@" />
+  <node name="bag_player" pkg="rosbag" type="play"
+        args="--loop --clock $(arg bag_file)" output="screen" />
+  <node name="rviz" pkg="rviz" type="rviz"
+        args="-d $(find @PACKAGE_NAME@)/rviz/camera_image.rviz" output="screen" />
+</launch>

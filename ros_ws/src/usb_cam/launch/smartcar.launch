@@ -1,0 +1,37 @@
+<launch>
+  <arg name="video_device" default="/dev/video0" />
+  <arg name="image_width" default="640" />
+  <arg name="image_height" default="480" />
+  <arg name="framerate" default="30" />
+  <arg name="pixel_format" default="mjpeg" />
+  <arg name="color_format" default="yuv422p" />
+  <arg name="io_method" default="mmap" />
+  <arg name="face_detection" default="true" />
+  <arg name="view" default="false" />
+  <arg name="show_face_window" default="false" />
+
+  <include file="$(find usb_cam)/launch/usb_cam-test.launch">
+    <arg name="video_device" value="$(arg video_device)" />
+    <arg name="image_width" value="$(arg image_width)" />
+    <arg name="image_height" value="$(arg image_height)" />
+    <arg name="framerate" value="$(arg framerate)" />
+    <arg name="pixel_format" value="$(arg pixel_format)" />
+    <arg name="color_format" value="$(arg color_format)" />
+    <arg name="io_method" value="$(arg io_method)" />
+    <arg name="view" value="false" />
+  </include>
+
+  <node if="$(arg face_detection)" name="face_detection" pkg="usb_cam"
+        type="face_detection_node" output="screen" required="true">
+    <param name="cascade_file" value="$(find usb_cam)/config/haarcascade_frontalface_default.xml" />
+    <param name="input_topic" value="/usb_cam/image_raw" />
+    <param name="output_topic" value="/face_detection/image" />
+    <param name="show_window" value="$(arg show_face_window)" />
+  </node>
+
+  <node if="$(arg view)" name="face_image_view" pkg="image_view" type="image_view"
+        output="screen" respawn="false">
+    <remap from="image" to="/face_detection/image" />
+    <param name="autosize" value="true" />
+  </node>
+</launch>

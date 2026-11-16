@@ -1,0 +1,94 @@
+#include <exception>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.h>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/objdetect.hpp>
+#include <ros/ros.h>
+#include <sensor_msgs/image_encodings.h>
+
+namespace
+{
+// The competition rules explicitly require the XML absolute path in C++.
+const std::string kDefaultCascadePath = "@CASCADE_PATH@";
+}
+
+class FaceDetectionNode
+{
+public:
+  FaceDetectionNode() : private_node_("~"), transport_(node_)
+  {
+    private_node_.param("cascade_file", cascade_file_, kDefaultCascadePath);
+    private_node_.param("input_topic", input_topic_, std::string("/usb_cam/image_raw"));
+    private_node_.param("output_topic", output_topic_, std::string("/face_detection/image"));
+    if (!cascade_.load(cascade_file_))
+    {
+      throw std::runtime_error("unable to load face cascade: " + cascade_file_);
+    }
+    publisher_ = transport_.advertise(output_topic_, 1);
+    subscriber_ = transport_.subscribe(input_topic_, 1, &FaceDetectionNode::imageCallback, this);
+    ROS_INFO("Loaded face cascade from absolute path: %s", cascade_file_.c_str());
+  }
+
+private:
+  void imageCallback(const sensor_msgs::ImageConstPtr& message)
+  {
+    try
+    {
+      const cv_bridge::CvImageConstPtr source =
+          cv_bridge::toCvShare(message, sensor_msgs::image_encodings::BGR8);
+      cv::Mat grayscale;
+      cv::cvtColor(source->image, grayscale, cv::COLOR_BGR2GRAY);
+      cv::equalizeHist(grayscale, grayscale);
+
+      std::vector<cv::Rect> faces;
+      cascade_.detectMultiScale(grayscale, faces, 1.1, 3, cv::CASCADE_SCALE_IMAGE,
+          cv::Size(30, 30));
+
+      cv::Mat output = source->image.clone();
+      for (const cv::Rect& face : faces)
+      {
+        cv::rectangle(output, face, cv::Scalar(255, 0, 0), 2);
+      }
+      publisher_.publish(cv_bridge::CvImage(
+          message->header, sensor_msgs::image_encodings::BGR8, output).toImageMsg());
+    }
+    catch (const cv_bridge::Exception& error)
+    {
+      ROS_ERROR_THROTTLE(5.0, "cv_bridge error: %s", error.what());
+    }
+    catch (const cv::Exception& error)
+    {
+      ROS_ERROR_THROTTLE(5.0, "OpenCV error: %s", error.what());
+    }
+  }
+
+  ros::NodeHandle node_;
+  ros::NodeHandle private_node_;
+  image_transport::ImageTransport transport_;
+  image_transport::Subscriber subscriber_;
+  image_transport::Publisher publisher_;
+  cv::CascadeClassifier cascade_;
+  std::string cascade_file_;
+  std::string input_topic_;
+  std::string output_topic_;
+};
+
+int main(int argc, char** argv)
+{
+  ros::init(argc, argv, "face_detection_node");
+  try
+  {
+    FaceDetectionNode node;
+    ros::spin();
+  }
+  catch (const std::exception& error)
+  {
+    ROS_FATAL("Face detection startup failed: %s", error.what());
+    return 1;
+  }
+  return 0;
+}

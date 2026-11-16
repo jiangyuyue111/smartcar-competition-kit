@@ -1,0 +1,21 @@
+# Catkin outputs
+build/
+devel/
+install/
+log/
+.catkin_tools/
+
+# Editor and OS files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Large competition recordings are intentionally external to normal Git.
+data/*.bag
+!data/.gitkeep
+
+# Runtime logs
+*.log

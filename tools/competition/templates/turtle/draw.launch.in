@@ -1,0 +1,10 @@
+<launch>
+  <arg name="headless" default="false" />
+  <node unless="$(arg headless)" name="turtlesim" pkg="turtlesim" type="turtlesim_node"
+        output="screen" required="true" />
+  <node if="$(arg headless)" name="turtlesim" pkg="turtlesim" type="turtlesim_node"
+        output="screen" required="true">
+    <env name="QT_QPA_PLATFORM" value="offscreen" />
+  </node>
+  <node name="turtle_draw" pkg="@PACKAGE_NAME@" type="turtle_draw_node" output="screen" />
+</launch>
